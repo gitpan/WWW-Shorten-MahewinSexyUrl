@@ -5,26 +5,36 @@ use warnings;
 
 use base qw( WWW::Shorten::generic Exporter );
 our @EXPORT  = qw( makeashorterlink makealongerlink );
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 use Carp;
 
 sub makeashorterlink ($) {
-    my $url = shift or croak 'No URL passed to makeashorterlink';
-    my $ua = __PACKAGE__->ua();
+    my $url         = shift or croak 'No URL passed to makeashorterlink';
+    my $ua          = __PACKAGE__->ua();
     my $service_url = 'http://msud.pl';
+
     my $resp = $ua->post($service_url, [
-	sexy_url => $url,
-	source => "PerlAPI-$VERSION",
+        sexy_url => $url,
+        source   => "PerlAPI-$VERSION",
     ]);
-    #return undef unless $resp->is_redirect;
-    return $resp->header('X-ShortUrl');
+
+    return undef unless $resp->header('X-ShortUrl');
+    return $service_url . '/' . $resp->header('X-ShortUrl');
 }
 
 sub makealongerlink ($) {
-    my $msud = shift;
+    my $msud = shift or croak 'No msud key / url passed to makealongerlink';
+    my $ua   = __PACKAGE__->ua();
 
-    croak "Not implemented again.";
+    $msud = "http://msud.pl/$msud" unless $msud =~ m/^http:\/\//i;
+
+    my $resp = $ua->get($msud);
+
+    return undef unless $resp->is_redirect;
+    my $url = $resp->header('Location');
+
+    return $url;
 }
 
 1;
@@ -33,14 +43,19 @@ __END__
 
 =head1 NAME
 
+=encoding utf8
+
 WWW::Shorten::MahewinSexyUrl - Perl interface to msud.pl
 
 =head1 SYNOPSIS
 
   use WWW::Shorten 'MahewinSexyUrl';
 
-  $short_url = makeashorterlink($long_url);
-  $long_url  = makealongerlink($short_url);
+  my $long_url  = 'http://essai.fr';
+  my $short_url = 'http://msud.pl/O0';
+
+  my $short_url = makeashorterlink($long_url);
+  my $long_url  = makealongerlink($short_url);
 
 =head1 DESCRIPTION
 
